@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: staging
+    database: dataengineering1-433721
+    schema: mtg_card_data_raw
+
+    tables:
+      - name: default_cards_data
