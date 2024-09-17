@@ -10,8 +10,14 @@ from prefect_gcp.cloud_storage import GcsBucket
 import json
 import ast
 from prefect_dbt.cli import DbtCoreOperation, DbtCliProfile
-warnings.filterwarnings('ignore')
+from prefect_dbt.cloud import DbtCloudCredentials
+from prefect_dbt.cloud.jobs import trigger_dbt_cloud_job_run
 import pandas_gbq
+from prefect_dbt.cloud import DbtCloudJob
+
+from prefect_dbt.cloud import DbtCloudCredentials, DbtCloudJob
+warnings.filterwarnings('ignore')
+
 
 @task(log_prints = True, name = "Fetch_data", retries = 3)
 def fetch_data(url:str) -> pd.DataFrame:
@@ -122,6 +128,17 @@ def write_data_to_BQ(df :pd.DataFrame)-> None:
 
     return
 
+@task(log_prints = True, name = "Runs dbt job to transform the data")
+def dbt_job()-> object:
+    dbt_cloud_credentials = DbtCloudCredentials.load("dbt-cloud")
+    dbt_cloud_job = DbtCloudJob.load("dot-cloud-job")
+    dbt_cloud_job_run = dbt_cloud_job.trigger()
+    dbt_cloud_job_run.wait_for_completion()
+    dbt_cloud_job_run.fetch_result()
+   
+  
+
+
 
         
 @flow(log_prints = True, name = "Card data API to Big Query")
@@ -136,6 +153,7 @@ def data_api(type_of_cards:str) -> None:
     data_transformation = transform(data_df, recent_date)
     print(data_transformation.shape)
     write_data_to_BQ(data_transformation)
+    dbt_job()
 
 
 
